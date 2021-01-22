@@ -1,0 +1,35 @@
+version: "3.4"
+services:
+  pushgateway:
+    image: prom/pushgateway
+    restart: unless-stopped
+    ports:
+      - 9091:9091
+
+  pinger:
+    build:
+      context: ../../
+      dockerfile: ./build/docker/Dockerfile
+      args:
+        - TZ=Asia/Jakarta
+    image: diazharizky/pinger
+    depends_on:
+      - pushgateway
+    environment:
+      - TARGET_URL
+      - PROMETHEUS_NAMESPACE
+      - PROMETHEUS_PUSHGATEWAY_URL
+    command: 10s 60s
+
+  builder:
+    image: rucciva/golang:1.15.2-alpine
+    environment:
+      - GOCACHE=/go/build
+    volumes:
+      - ../../:${PWD}/../..
+      - ${GOPATH}/pkg:/go/pkg
+      - ${GOPATH}/build:/go/build
+    working_dir: ${PWD}/../..
+    entrypoint: /bin/sh -c
+    command:
+      - make build
